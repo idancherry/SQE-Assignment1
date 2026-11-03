@@ -260,7 +260,7 @@ public class TestLibrary {
     void GivenUserNotFound_WhenNotifyUserWithBookReviews_ThenThrowUserNotRegisteredException() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
 
         Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
         Mockito.when(databaseService.getUserById(userId)).thenReturn(null);
@@ -277,7 +277,7 @@ public class TestLibrary {
     void GivenNullReviews_WhenNotifyUserWithBookReviews_ThenThrowNoReviewsFoundException() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
 
         Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
@@ -296,7 +296,7 @@ public class TestLibrary {
     void GivenEmptyReviews_WhenNotifyUserWithBookReviews_ThenThrowNoReviewsFoundException() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
 
         Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
@@ -315,7 +315,7 @@ public class TestLibrary {
     void GivenReviewException_WhenNotifyUserWithBookReviews_ThenThrowReviewServiceUnavailableException() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
 
         Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
@@ -334,7 +334,7 @@ public class TestLibrary {
     void GivenValidReviews_WhenNotifyUserWithBookReviews_ThenSendNotificationOnce() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
         List<String> reviews = List.of("Great book", "Worth reading");
 
@@ -353,7 +353,7 @@ public class TestLibrary {
     void GivenFirstNotificationFails_WhenNotifyUserWithBookReviews_ThenSucceedOnSecondAttempt() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
         List<String> reviews = List.of("Great book", "Worth reading");
 
@@ -378,7 +378,7 @@ public class TestLibrary {
     void GivenAllNotificationAttemptsFail_WhenNotifyUserWithBookReviews_ThenThrowNotificationException() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
         List<String> reviews = List.of("Great book", "Worth reading");
 
@@ -404,7 +404,7 @@ public class TestLibrary {
     void GivenFirstFourNotificationsFail_WhenNotifyUserWithBookReviews_ThenSucceedOnFifthAttempt() {
         String isbn = "9780306406157";
         String userId = "123456789012";
-        Book book = new Book(isbn, "Harry Potter", "Harry");
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
         User user = new User("Dani", "123456789012", notificationService);
         List<String> reviews = List.of("Great book", "Worth reading");
 
@@ -426,6 +426,125 @@ public class TestLibrary {
         Mockito.verify(notificationService, Mockito.times(5))
                 .notifyUser(userId, expectedMessage);
         Mockito.verify(reviewService).close();
+    }
+
+
+//GetBookByISBN
+
+    @Test
+    void GivenInvalidISBN_WhenGetBookByISBN_ThenReturnBookAndSendReviews() {
+        String isbn = "780306406157";
+        String userId = "123456789012";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, userId));
+
+    }
+
+    @Test
+    void GivenNullUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException() {
+        String isbn = "9780306406157";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, null));
+    }
+
+    @Test
+    void GivenEmptyUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException() {
+        String isbn = "9780306406157";
+        String userId = "";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, userId));
+    }
+
+    @Test
+    void GivenTooShortUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException() {
+        String isbn = "9780306406157";
+        String userId = "12345678901";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, userId));
+    }
+
+    @Test
+    void GivenTooLongUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException() {
+        String isbn = "9780306406157";
+        String userId = "1234567890123";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, userId));
+    }
+
+    @Test
+    void GivenNonDigitUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException() {
+        String isbn = "9780306406157";
+        String userId = "1234*6789012";
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> library.getBookByISBN(isbn, userId));
+    }
+
+    @Test
+    void GivenNullBook_WhenGetBookByISBN_ThenThrowBookNotFoundException() {
+        String isbn = "9780306406157";
+        String userId = "123456789012";
+
+        Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(null);
+
+        Assertions.assertThrows(BookNotFoundException.class,
+                () -> library.getBookByISBN(isbn, userId));
+
+    }
+
+    @Test
+    void GivenBorrowedBook_WhenGetBookByISBN_ThenThrowBookAlreadyBorrowedException() {
+        String isbn = "9780306406157";
+        String userId = "123456789012";
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
+
+        Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+        book.borrow();
+
+        Assertions.assertThrows(BookAlreadyBorrowedException.class,
+                () -> library.getBookByISBN(isbn, userId));
+    }
+
+    @Test
+    void GivenAvailableBook_WhenGetBookByISBN_ThenThrowBookAlreadyBorrowedException() {
+        String isbn = "9780306406157";
+        String userId = "123456789012";
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
+        User user = new User("Dani", "123456789012", notificationService);
+        List<String> reviews = List.of("Great book", "Worth reading");
+
+        Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+        Mockito.when(databaseService.getUserById(userId)).thenReturn(user);
+        Mockito.when(reviewService.getReviewsForBook(isbn)).thenReturn(reviews);
+
+        String expectedMessage = "Reviews for 'Harry Potter':\nGreat book\nWorth reading";
+
+        Book result = library.getBookByISBN(isbn, userId);
+
+        Assertions.assertSame(book, result);
+
+        Mockito.verify(notificationService).notifyUser(userId, expectedMessage);
+        Mockito.verify(reviewService).close();
+    }
+
+    @Test
+    void GivenUserNotRegistered_WhenGetBookByISBN_ThenReturnBook() {
+        String isbn = "9780306406157";
+        String userId = "123456789012";
+        Book book = new Book(isbn,  "Harry Potter", "J.K. Rowling");
+
+        Mockito.when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+        Mockito.when(databaseService.getUserById(userId)).thenReturn(null);
+
+        Book result = library.getBookByISBN(isbn, userId);
+
+        Assertions.assertSame(book, result);
+        Mockito.verifyNoInteractions(reviewService, notificationService);
     }
 
 //addBook?
