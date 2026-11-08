@@ -129,9 +129,9 @@ public class Library {
 
             // Check for consecutive special characters.
             if ((current == '\'' && next == '\'') ||
-                    (current == ' ' && next == ' ') ||
-                    (current == '.' && next == '.') ||
-                    (current == '-' && next == '-')) {
+                (current == ' ' && next == ' ') ||
+                (current == '.' && next == '.') ||
+                (current == '-' && next == '-')) {
                 return false;
             }
         }
