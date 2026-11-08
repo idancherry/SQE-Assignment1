@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import ac.il.bgu.qa.errors.BookAlreadyBorrowedException;
+import ac.il.bgu.qa.errors.BookNotBorrowedException;
 import ac.il.bgu.qa.errors.BookNotFoundException;
 import ac.il.bgu.qa.errors.UserNotRegisteredException;
 import ac.il.bgu.qa.services.DatabaseService;
@@ -246,7 +247,7 @@ public class TestLibrary {
 
     @Test
     void GivenValidBookAndUser_WhenBorrowBook_ThenBookMarkedBorrowedAndDatabaseUpdated(){
-        User user = new User(VALID_USERNAME, VALID_USERID , notificationService);
+        User user = new User(VALID_USERNAME, VALID_USERID, notificationService);
         Book book = new Book(VALID_ISBN, VALID_TITLE, VALID_AUTHOR);
         when(databaseService.getBookByISBN(VALID_ISBN)).thenReturn(book);
         when(databaseService.getUserById(VALID_USERID)).thenReturn(user);
@@ -299,6 +300,7 @@ public class TestLibrary {
             UserNotRegisteredException.class,
             () -> library.borrowBook(VALID_ISBN, VALID_USERID));
         assertEquals("User not found!", e.getMessage());
+        assertFalse(book.isBorrowed());
         verify(databaseService, never()).borrowBook(any(), any());
     }
 
@@ -320,5 +322,54 @@ public class TestLibrary {
     void GivenBookDoesntExistAndInvalidUserId_WhenBorrowBook_ThenThrowsBookNotFoundException() {
         assertThrows(BookNotFoundException.class,
             () -> library.borrowBook(VALID_ISBN, "bad"));
+        verify(databaseService, never()).getUserById(any());
     }
+
+
+    //returnBook - Happy Path
+
+    @Test
+    void GivenBorrowedBook_WhenReturnBook_ThenBookMarkedReturnedAndDatabaseUpdated(){
+        Book book = new Book(VALID_ISBN, VALID_TITLE, VALID_AUTHOR);
+        when(databaseService.getBookByISBN(VALID_ISBN)).thenReturn(book);
+        book.borrow();
+        library.returnBook(VALID_ISBN);
+        assertFalse(book.isBorrowed());
+        verify(databaseService).returnBook(VALID_ISBN);
+    }
+
+
+    //returnBook - Sad Path
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidISBN")
+    void GivenInvalidISBN_WhenReturnBook_ThenThrowsIllegalArgumentException(String label, String isbn){
+        IllegalArgumentException e = assertThrows(
+            IllegalArgumentException.class,
+            () -> library.returnBook(isbn));
+        assertEquals("Invalid ISBN.", e.getMessage());
+        verify(databaseService, never()).returnBook(any());
+        verify(databaseService, never()).getBookByISBN(any());
+    }
+
+    @Test 
+    void GivenBookDoesntExist_WhenReturnBook_ThenThrowsBookNotFoundException(){
+        BookNotFoundException e = assertThrows(
+            BookNotFoundException.class,
+            () -> library.returnBook(VALID_ISBN));
+        assertEquals("Book not found!", e.getMessage());
+        verify(databaseService, never()).returnBook(any());
+    }
+
+    @Test
+    void GivenBookNotBorrowed_WhenReturnBook_ThenThrowsBookNotBorrowedException(){
+        Book book = new Book(VALID_ISBN, VALID_TITLE, VALID_AUTHOR);
+        when(databaseService.getBookByISBN(VALID_ISBN)).thenReturn(book);
+        BookNotBorrowedException e = assertThrows(
+            BookNotBorrowedException.class,
+            () -> library.returnBook(VALID_ISBN));
+        assertEquals("Book wasn't borrowed!", e.getMessage());
+        verify(databaseService, never()).returnBook(any());
+    }
+
 }
