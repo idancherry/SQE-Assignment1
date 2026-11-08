@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.stream.Stream;
 
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.*;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import ac.il.bgu.qa.errors.BookAlreadyBorrowedException;
 import ac.il.bgu.qa.errors.BookNotBorrowedException;
@@ -153,7 +155,7 @@ public class TestLibrary {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidUserId")
-    void GivenNullUserID_WhennotifyUserWithBookReviews_ThenThrowIllegalArgumentException(String label, String id) {
+    void GivenInvalidUserId_WhennotifyUserWithBookReviews_ThenThrowIllegalArgumentException(String label, String id) {
         Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> library.notifyUserWithBookReviews(VALID_ISBN, id));
@@ -332,7 +334,7 @@ public class TestLibrary {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidUserId")
-    void GivenNullUserID_WhenGetBookByISBN_ThenThrowIllegalArgumentException(String label, String id) {
+    void GivenInvalidUserId_WhenGetBookByISBN_ThenThrowIllegalArgumentException(String label, String id) {
         assertThrows(IllegalArgumentException.class,
                 () -> library.getBookByISBN(VALID_ISBN, id));
     }
@@ -386,7 +388,7 @@ public class TestLibrary {
         Arguments.of("dot", "J.Rowling"),
         Arguments.of("space", VALID_AUTHOR),
         Arguments.of("single character", "A"),
-        Arguments.of("non ASCII letters", "José"));
+        Arguments.of("non ASCII letters", "Jos\u00E9"));
     }
 
     static Stream<Arguments> mixedSpecialCharacters() {
@@ -674,4 +676,140 @@ public class TestLibrary {
         assertEquals("Book wasn't borrowed!", e.getMessage());
         verify(databaseService, never()).returnBook(any());
     }
+
+    @ParameterizedTest
+@ValueSource(strings = {"null", "empty", "review error", "send error"})
+void GivenReviewOrNotificationFailure_WhenGetBookByISBN_ThenReturnAvailableBook(
+        String failure) {
+
+    Book book = new Book(VALID_ISBN, VALID_TITLE, VALID_AUTHOR);
+    User user = new User(VALID_USERNAME, VALID_USERID, notificationService);
+
+    when(databaseService.getBookByISBN(VALID_ISBN)).thenReturn(book);
+    when(databaseService.getUserById(VALID_USERID)).thenReturn(user);
+
+    String expectedMessage = "Reviews for 'Harry Potter':\nOnly review";
+
+    switch (failure) {
+        case "null":
+            when(reviewService.getReviewsForBook(VALID_ISBN))
+                    .thenReturn(null);
+            break;
+
+        case "empty":
+            when(reviewService.getReviewsForBook(VALID_ISBN))
+                    .thenReturn(Collections.emptyList());
+            break;
+
+        case "review error":
+            when(reviewService.getReviewsForBook(VALID_ISBN))
+                    .thenThrow(new ReviewException("unavailable"));
+            break;
+
+        case "send error":
+            when(reviewService.getReviewsForBook(VALID_ISBN))
+                    .thenReturn(List.of("Only review"));
+
+            doThrow(new NotificationException("unavailable"))
+                    .when(notificationService)
+                    .notifyUser(VALID_USERID, expectedMessage);
+            break;
+
+        default:
+            throw new AssertionError("Unknown test case");
+    }
+
+    Book result = library.getBookByISBN(VALID_ISBN, VALID_USERID);
+
+    Assertions.assertSame(book, result);
+    assertFalse(book.isBorrowed());
+    verify(reviewService).close();
+
+    if (failure.equals("send error")) {
+        verify(notificationService, times(5))
+                .notifyUser(VALID_USERID, expectedMessage);
+    } else {
+        verifyNoInteractions(notificationService);
+    }
+}
+
+@Test
+void GivenWhitespaceName_WhenRegisterUser_ThenRegisterUser() {
+    User user = new User(" ", VALID_USERID, notificationService);
+
+    library.registerUser(user);
+
+    verify(databaseService).registerUser(VALID_USERID, user);
+}
+
+static Stream<Arguments> additionalReviewMessages() {
+    return Stream.of(
+            Arguments.of(
+                    List.of("Only review"),
+                    "Only review"),
+
+            Arguments.of(
+                    List.of("First", "Second", "Third"),
+                    "First\nSecond\nThird")
+    );
+}
+
+@ParameterizedTest
+@MethodSource("additionalReviewMessages")
+void GivenDifferentBookAndReviews_WhenNotifyUserWithBookReviews_ThenSendExactMessage(
+        List<String> reviews, String expectedReviews) {
+
+    String isbn = "9780134685991";
+    String userId = "000000000001";
+
+    Book book = new Book(isbn, "Effective Java", "Joshua Bloch");
+    User user = new User("Ada", userId, notificationService);
+
+    when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+    when(databaseService.getUserById(userId)).thenReturn(user);
+    when(reviewService.getReviewsForBook(isbn)).thenReturn(reviews);
+
+    library.notifyUserWithBookReviews(isbn, userId);
+
+    String expectedMessage =
+            "Reviews for 'Effective Java':\n" + expectedReviews;
+
+    verify(notificationService).notifyUser(userId, expectedMessage);
+    verifyNoMoreInteractions(notificationService);
+
+    verify(reviewService).getReviewsForBook(isbn);
+    verify(reviewService).close();
+    verifyNoMoreInteractions(reviewService);
+}
+
+@Test
+void GivenDifferentBookAndUser_WhenBorrowBook_ThenUseSuppliedIdentifiers() {
+    String isbn = "9780134685991";
+    String userId = "000000000001";
+
+    Book book = new Book(isbn, "Effective Java", "Joshua Bloch");
+    User user = new User("Ada", userId, notificationService);
+
+    when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+    when(databaseService.getUserById(userId)).thenReturn(user);
+
+    library.borrowBook(isbn, userId);
+
+    assertTrue(book.isBorrowed());
+    verify(databaseService).borrowBook(isbn, userId);
+}
+
+@Test
+void GivenDifferentBorrowedBook_WhenReturnBook_ThenUseSuppliedISBN() {
+    String isbn = "9780134685991";
+    Book book = new Book(isbn, "Effective Java", "Joshua Bloch");
+
+    book.borrow();
+    when(databaseService.getBookByISBN(isbn)).thenReturn(book);
+
+    library.returnBook(isbn);
+
+    assertFalse(book.isBorrowed());
+    verify(databaseService).returnBook(isbn);
+}
 }
