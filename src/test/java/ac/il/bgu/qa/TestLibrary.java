@@ -26,8 +26,6 @@ public class TestLibrary {
     }
 
 
-    //addBook
-
 
     @Test
     void GivenAuthorWithSingleHyphen_WhenAddBook_ThenBookAddedToDatabase() {
@@ -72,7 +70,6 @@ public class TestLibrary {
                 .addBook(Mockito.any(), Mockito.any());
     }
 
-//RegisterUser
 
     @Test
     void GivenNullUser_WhenRegisterUser_ThenThrowIllegalArgumentException() {
@@ -180,7 +177,6 @@ public class TestLibrary {
         Mockito.verify(databaseService).registerUser("123456789011", user);
     }
 
-//notifyUserWithBookReviews
 
     @Test
     void GivenInvalidISBN_WhennotifyUserWithBookReviews_ThenThrowIllegalArgumentException() {
@@ -429,7 +425,6 @@ public class TestLibrary {
     }
 
 
-//GetBookByISBN
 
     @Test
     void GivenInvalidISBN_WhenGetBookByISBN_ThenReturnBookAndSendReviews() {
@@ -546,71 +541,6 @@ public class TestLibrary {
         Assertions.assertSame(book, result);
         Mockito.verifyNoInteractions(reviewService, notificationService);
     }
-
-//addBook?
-
-//    @Test
-//    void GivenNullName_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", null);
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenEmptyName_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenAuthorStartingWithDigit_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "1arry");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenAuthorEndingWithDigit_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "Harr1");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenAuthorWithInvalidCharacter_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "Ha*ry");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenAuthorWithConsecutiveHyphens_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "Ha--ry");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
-//
-//    @Test
-//    void GivenAuthorWithConsecutiveApostrophes_WhenAddBook_ThenThrowIllegalArgumentException() {
-//        Book book = new Book("9780306406157", "Harry potter", "Ha''ry");
-//
-//        Assertions.assertThrows(
-//                IllegalArgumentException.class,
-//                () -> library.addBook(book));
-//    }
 
 
 }
